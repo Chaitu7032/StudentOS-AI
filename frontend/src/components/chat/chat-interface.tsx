@@ -13,7 +13,6 @@ import { useKnowledgeStore } from "@/stores/knowledge-store";
 import type { Citation, LearningMode, Message } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { MarkdownMessage } from "./markdown-message";
@@ -52,7 +51,8 @@ export function ChatInterface({
   const [isStreaming, setIsStreaming] = useState(false);
   const [showModes, setShowModes] = useState(messages.length === 0);
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesViewportRef = useRef<HTMLDivElement>(null);
+  const shouldStickToBottomRef = useRef(true);
   const abortRef = useRef(false);
 
   const { data: stats } = useQuery({
@@ -67,8 +67,17 @@ export function ChatInterface({
     setActiveMode(initialMode);
   }, [initialMode, setActiveMode]);
 
+  const handleMessagesScroll = useCallback(() => {
+    const el = messagesViewportRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 80;
+  }, []);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesViewportRef.current;
+    if (!el || !shouldStickToBottomRef.current) return;
+    el.scrollTop = el.scrollHeight;
   }, [messages, activeCitations]);
 
   const sendMessage = useCallback(async () => {
@@ -162,10 +171,14 @@ export function ChatInterface({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full px-4 md:px-6">
-          <div className="mx-auto max-w-3xl space-y-6 py-6">
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <div
+          ref={messagesViewportRef}
+          onScroll={handleMessagesScroll}
+          className="h-full overflow-y-auto px-4 md:px-8"
+        >
+          <div className="mx-auto w-full max-w-6xl space-y-6 py-6">
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -228,7 +241,10 @@ export function ChatInterface({
                       msg.streaming && !msg.content ? (
                         <TypingIndicator />
                       ) : (
-                        <MarkdownMessage content={msg.content || "..."} />
+                        <MarkdownMessage
+                          content={msg.content || "..."}
+                          isStreaming={!!msg.streaming}
+                        />
                       )
                     ) : (
                       <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
@@ -245,13 +261,12 @@ export function ChatInterface({
                 </motion.div>
               ))}
             </AnimatePresence>
-            <div ref={bottomRef} />
           </div>
-        </ScrollArea>
+        </div>
       </div>
 
       <div className="border-t border-border/50 bg-background/80 p-4 backdrop-blur-xl">
-        <div className="mx-auto max-w-3xl space-y-3">
+        <div className="mx-auto w-full max-w-6xl space-y-3">
           {(showModes || messages.length === 0) && (
             <LearningModeSelector
               value={activeMode}

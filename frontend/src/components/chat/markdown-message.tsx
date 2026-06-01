@@ -24,13 +24,18 @@ const MAX_MERMAID_CHARS = 12_000;
 interface MarkdownMessageProps {
   content: string;
   className?: string;
+  isStreaming?: boolean;
 }
 
 function CodeBlock({
   className,
   children,
+  isStreaming = false,
   ...props
-}: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
+}: React.HTMLAttributes<HTMLElement> & {
+  children?: React.ReactNode;
+  isStreaming?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className ?? "");
   const lang = match?.[1]?.toLowerCase();
@@ -51,6 +56,18 @@ function CodeBlock({
   }
 
   if (lang === "mermaid") {
+    if (isStreaming) {
+      return (
+        <div className="my-4 rounded-xl border border-border/50 bg-card/60 p-3">
+          <p className="mb-2 text-xs text-muted-foreground">
+            Rendering diagram when response completes...
+          </p>
+          <pre className="overflow-x-auto text-sm leading-relaxed">
+            <code>{code}</code>
+          </pre>
+        </div>
+      );
+    }
     if (code.length > MAX_MERMAID_CHARS) {
       return (
         <p className="text-sm text-muted-foreground">Diagram too large to render.</p>
@@ -82,7 +99,11 @@ function CodeBlock({
   );
 }
 
-export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
+export function MarkdownMessage({
+  content,
+  className,
+  isStreaming = false,
+}: MarkdownMessageProps) {
   return (
     <div
       className={cn(
@@ -99,7 +120,7 @@ export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
           rehypeHighlight,
         ]}
         components={{
-          code: CodeBlock,
+          code: (props) => <CodeBlock {...props} isStreaming={isStreaming} />,
           pre: ({ children }) => <>{children}</>,
         }}
       >

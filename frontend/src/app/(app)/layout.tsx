@@ -9,27 +9,30 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s.hasHydrated);
 
   useEffect(() => {
-    if (!token) {
+    if (hydrated && !token) {
       router.replace("/login");
     }
-  }, [token, router]);
+  }, [hydrated, token, router]);
 
-  if (!token) {
+  if (!hydrated || !token) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-dvh items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <div className="hidden md:block">
+    <div className="flex h-dvh min-h-0 overflow-hidden bg-background">
+      <div className="hidden h-full min-h-0 md:block">
         <Sidebar />
       </div>
-      <main className="flex-1 overflow-hidden pb-16 md:pb-0">{children}</main>
+      <main className="flex min-h-0 flex-1 overflow-hidden pb-16 md:pb-0">
+        {children}
+      </main>
       <MobileNav />
     </div>
   );

@@ -21,28 +21,50 @@ interface MermaidDiagramProps {
 
 let mermaidInitialized = false;
 
+function hashString(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
 async function renderChart(
   id: string,
   chart: string,
   dark: boolean,
 ): Promise<string> {
   const mermaid = (await import("mermaid")).default;
+  const normalizedChart = chart.trim();
+  const baseConfig = {
+    startOnLoad: false,
+    theme: dark ? "dark" : "neutral",
+    securityLevel: "strict",
+    suppressErrorRendering: true,
+  } as const;
   if (!mermaidInitialized) {
     mermaid.initialize({
-      startOnLoad: false,
-      theme: dark ? "dark" : "neutral",
-      securityLevel: "strict",
+      ...baseConfig,
       fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
     });
     mermaidInitialized = true;
   } else {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: dark ? "dark" : "neutral",
-      securityLevel: "strict",
-    });
+    mermaid.initialize(baseConfig);
   }
-  const { svg } = await mermaid.render(id, chart.trim());
+
+  if (!normalizedChart) {
+    throw new Error("Empty Mermaid chart");
+  }
+
+  if (typeof mermaid.parse === "function") {
+    const parsed = await mermaid.parse(normalizedChart, { suppressErrors: true });
+    if (parsed === false) {
+      throw new Error("Invalid Mermaid syntax");
+    }
+  }
+
+  const { svg } = await mermaid.render(id, normalizedChart);
   return svg;
 }
 
@@ -65,6 +87,7 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
 
   const dark = resolvedTheme === "dark";
   const renderKey = `${dark ? "dark" : "light"}:${safeChart}`;
+  const renderId = `mmd-${uid}-${hashString(renderKey)}`;
   const loading = result.key !== renderKey;
   const error = result.key === renderKey ? result.error : null;
   const svg = result.key === renderKey ? result.svg : "";
@@ -72,7 +95,7 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
   useEffect(() => {
     let cancelled = false;
 
-    renderChart(`mmd-${uid}`, safeChart, dark)
+    renderChart(renderId, safeChart, dark)
       .then((result) => {
         if (!cancelled) {
           setResult({ key: renderKey, svg: result, error: null });
@@ -91,7 +114,7 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
     return () => {
       cancelled = true;
     };
-  }, [dark, renderKey, safeChart, uid]);
+  }, [dark, renderId, renderKey, safeChart]);
 
   const diagramBody = (
     <div className="relative min-h-[120px]">

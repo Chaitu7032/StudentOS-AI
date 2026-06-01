@@ -15,14 +15,15 @@ export default function ChatPage({
 }) {
   const { id } = use(params);
   const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s.hasHydrated);
 
   const { data: chat, isLoading, error } = useQuery({
     queryKey: ["chat", id],
     queryFn: () => api.getChat(token!, id),
-    enabled: !!token && !!id,
+    enabled: hydrated && !!token && !!id,
   });
 
-  if (isLoading) {
+  if (!hydrated || !token || isLoading) {
     return (
       <div className="flex h-full flex-col gap-4 p-6">
         <Skeleton className="h-8 w-48" />

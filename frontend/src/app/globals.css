@@ -123,6 +123,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
     background-image:
       linear-gradient(180deg, rgba(30, 64, 175, 0.08), rgba(30, 64, 175, 0) 42%),
       radial-gradient(circle at top right, rgba(148, 163, 184, 0.12), transparent 52%);

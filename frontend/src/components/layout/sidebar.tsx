@@ -53,7 +53,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-border/70 bg-sidebar">
+    <aside className="flex h-full min-h-0 w-64 flex-col border-r border-border/70 bg-sidebar">
       <div className="flex items-center gap-2 px-4 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
           <GraduationCap className="h-4 w-4 text-primary" />
@@ -99,7 +99,7 @@ export function Sidebar() {
         <MessagesSquare className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
 
-      <ScrollArea className="flex-1 px-2">
+      <ScrollArea className="min-h-0 flex-1 px-2">
         <div className="space-y-0.5 py-2">
           {chats.map((chat) => (
             <Link
