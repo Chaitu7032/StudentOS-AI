@@ -111,7 +111,7 @@ Student OS1/
 1. Create a free [Supabase](https://supabase.com) project
 2. Run `supabase/schema.sql` in the SQL Editor
 3. Copy the connection string (Settings → Database → URI)
-4. Convert to async format: `postgresql+asyncpg://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres`
+4. Use the async pooler format (recommended for Render/Railway): `postgresql+asyncpg://postgres.<project-ref>:PASSWORD@aws-0-<region>.pooler.supabase.com:6543/postgres?ssl=require`
 
 ### 2. Backend
 

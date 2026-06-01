@@ -48,13 +48,34 @@ def _resolve_async_database_url(database_url: str) -> URL:
 
     return url
 
+
+def _build_connect_args(url: URL) -> dict[str, object]:
+    if url.drivername != "postgresql+asyncpg":
+        return {}
+
+    host = (url.host or "").lower()
+    uses_pgbouncer_like_pooler = url.port == 6543 or "pooler" in host
+    if not uses_pgbouncer_like_pooler:
+        return {}
+
+    # PgBouncer transaction/statement pooling can collide with asyncpg's
+    # generated prepared statement names.
+    return {
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    }
+
+
+database_url = _resolve_async_database_url(settings.database_url)
+
 engine = create_async_engine(
-    _resolve_async_database_url(settings.database_url),
+    database_url,
     echo=settings.debug and not settings.is_production,
     pool_pre_ping=True,
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_max_overflow,
     pool_recycle=settings.db_pool_recycle,
+    connect_args=_build_connect_args(database_url),
 )
 
 AsyncSessionLocal = async_sessionmaker(

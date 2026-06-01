@@ -1,3 +1,4 @@
+import errno
 import logging
 from contextlib import asynccontextmanager
 
@@ -32,13 +33,37 @@ logging.basicConfig(
 logger = logging.getLogger("studentos")
 
 
+def _is_network_unreachable_error(exc: Exception) -> bool:
+    """Detect ENETUNREACH even when wrapped by SQLAlchemy/async context layers."""
+    current: BaseException | None = exc
+    seen: set[int] = set()
+
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, OSError) and current.errno == errno.ENETUNREACH:
+            return True
+        current = current.__cause__ or current.__context__
+
+    return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     validate_production_settings()
     if settings.auto_create_tables:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables verified")
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables verified")
+        except Exception as exc:
+            if settings.is_production and _is_network_unreachable_error(exc):
+                logger.exception(
+                    "Database network unreachable during startup. "
+                    "Starting API without auto table creation. "
+                    "Use Supabase pooler DATABASE_URL on Render (port 6543)."
+                )
+            else:
+                raise
     yield
     await engine.dispose()
 

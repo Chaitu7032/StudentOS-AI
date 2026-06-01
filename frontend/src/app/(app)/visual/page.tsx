@@ -47,9 +47,9 @@ export default function VisualLearningPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full w-full min-w-0 overflow-y-auto">
       <div className="mesh-gradient pointer-events-none fixed inset-0 opacity-30" />
-      <div className="relative mx-auto max-w-5xl space-y-8 p-6 md:p-10">
+      <div className="app-shell">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

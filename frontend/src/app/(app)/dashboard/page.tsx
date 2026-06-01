@@ -122,9 +122,9 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full w-full min-w-0 overflow-y-auto">
       <div className="mesh-gradient pointer-events-none fixed inset-0 opacity-30" />
-      <div className="relative mx-auto max-w-6xl space-y-8 p-6 md:p-10">
+      <div className="app-shell">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
             Welcome back, {user?.full_name?.split(" ")[0] ?? "Student"}
