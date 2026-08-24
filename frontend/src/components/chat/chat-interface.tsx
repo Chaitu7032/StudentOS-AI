@@ -37,6 +37,135 @@ const STARTER_PROMPTS = [
   "How do I implement rate limiting in FastAPI with Redis and asyncpg?",
 ];
 
+interface ComposerProps {
+  input: string;
+  setInput: (value: string) => void;
+  onSend: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  isStreaming: boolean;
+  isConversationActive: boolean;
+  onAbort: () => void;
+  useKnowledge: boolean;
+  setUseKnowledge: (v: boolean) => void;
+  hasDocuments: boolean;
+  useWebSearch: boolean;
+  setUseWebSearch: (v: boolean) => void;
+  autoFocus?: boolean;
+}
+
+function Composer({
+  input,
+  setInput,
+  onSend,
+  onKeyDown,
+  isStreaming,
+  isConversationActive,
+  onAbort,
+  useKnowledge,
+  setUseKnowledge,
+  hasDocuments,
+  useWebSearch,
+  setUseWebSearch,
+  autoFocus = false,
+}: ComposerProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+  }, [input]);
+
+  return (
+    <div className="relative rounded-xl border border-border bg-card transition-shadow focus-within:shadow-[0_0_0_2px_hsl(var(--ring)/0.3)]">
+      <textarea
+        ref={textareaRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={onKeyDown}
+        autoFocus={autoFocus}
+        placeholder={
+          useKnowledge && hasDocuments
+            ? "Ask about your notes..."
+            : "Message StudentOS..."
+        }
+        rows={1}
+        disabled={isStreaming && isConversationActive}
+        className={cn(
+          "block w-full resize-none bg-transparent px-4 pt-3.5 pb-3",
+          "text-sm placeholder:text-muted-foreground/50",
+          "focus:outline-none",
+          "min-h-[52px] max-h-[200px]",
+        )}
+      />
+
+      <div className="flex items-center justify-between px-3 pb-3">
+        {/* Tool toggles */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => hasDocuments && setUseKnowledge(!useKnowledge)}
+            disabled={!hasDocuments}
+            title={hasDocuments ? "Search notes" : "Upload notes to enable"}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              useKnowledge && hasDocuments
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted",
+              !hasDocuments && "opacity-40 cursor-not-allowed",
+            )}
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Notes
+          </button>
+          <button
+            type="button"
+            onClick={() => setUseWebSearch(!useWebSearch)}
+            title="Search the web"
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              useWebSearch
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted",
+            )}
+          >
+            <Globe className="h-3.5 w-3.5" />
+            Web
+          </button>
+        </div>
+
+        {/* Send / Stop */}
+        {isStreaming && isConversationActive ? (
+          <button
+            type="button"
+            onClick={onAbort}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80"
+            aria-label="Stop"
+          >
+            <Square className="h-3 w-3 fill-current" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onSend}
+            disabled={!input.trim()}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
+              input.trim()
+                ? "bg-foreground text-background hover:opacity-80"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
+            aria-label="Send"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ChatInterface({
   chatId,
   initialMessages = [],
@@ -53,7 +182,6 @@ export function ChatInterface({
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const messagesViewportRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const shouldStickToBottomRef = useRef(true);
   const abortRef = useRef(false);
 
@@ -82,14 +210,6 @@ export function ChatInterface({
     if (!el || !shouldStickToBottomRef.current) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, activeCitations, isStreaming]);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
-  }, [input]);
 
   const sendMessage = useCallback(
     async (overrideText?: string) => {
@@ -181,95 +301,6 @@ export function ChatInterface({
     if (lastUser) sendMessage(lastUser.content);
   };
 
-  // ─── COMPOSER ────────────────────────────────────────────────────────────
-  const Composer = ({ autoFocus = false }: { autoFocus?: boolean }) => (
-    <div className="relative rounded-xl border border-border bg-card transition-shadow focus-within:shadow-[0_0_0_2px_hsl(var(--ring)/0.3)]">
-      <textarea
-        ref={textareaRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        autoFocus={autoFocus}
-        placeholder={
-          useKnowledge && hasDocuments
-            ? "Ask about your notes..."
-            : "Message StudentOS..."
-        }
-        rows={1}
-        disabled={isStreaming && isConversationActive}
-        className={cn(
-          "block w-full resize-none bg-transparent px-4 pt-3.5 pb-3",
-          "text-sm placeholder:text-muted-foreground/50",
-          "focus:outline-none",
-          "min-h-[52px] max-h-[200px]",
-        )}
-      />
-
-      <div className="flex items-center justify-between px-3 pb-3">
-        {/* Tool toggles */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => hasDocuments && setUseKnowledge(!useKnowledge)}
-            disabled={!hasDocuments}
-            title={hasDocuments ? "Search notes" : "Upload notes to enable"}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              useKnowledge && hasDocuments
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted",
-              !hasDocuments && "opacity-40 cursor-not-allowed",
-            )}
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            Notes
-          </button>
-          <button
-            type="button"
-            onClick={() => setUseWebSearch(!useWebSearch)}
-            title="Search the web"
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              useWebSearch
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted",
-            )}
-          >
-            <Globe className="h-3.5 w-3.5" />
-            Web
-          </button>
-        </div>
-
-        {/* Send / Stop */}
-        {isStreaming && isConversationActive ? (
-          <button
-            type="button"
-            onClick={() => { abortRef.current = true; setIsStreaming(false); }}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80"
-            aria-label="Stop"
-          >
-            <Square className="h-3 w-3 fill-current" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => sendMessage()}
-            disabled={!input.trim()}
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-              input.trim()
-                ? "bg-foreground text-background hover:opacity-80"
-                : "bg-muted text-muted-foreground cursor-not-allowed",
-            )}
-            aria-label="Send"
-          >
-            <ArrowUp className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-
   // ─── LANDING ─────────────────────────────────────────────────────────────
   if (!isConversationActive) {
     return (
@@ -285,7 +316,21 @@ export function ChatInterface({
             </p>
           </div>
 
-          <Composer autoFocus />
+          <Composer
+            input={input}
+            setInput={setInput}
+            onSend={() => sendMessage()}
+            onKeyDown={handleKeyDown}
+            isStreaming={isStreaming}
+            isConversationActive={isConversationActive}
+            onAbort={() => { abortRef.current = true; setIsStreaming(false); }}
+            useKnowledge={useKnowledge}
+            setUseKnowledge={setUseKnowledge}
+            hasDocuments={hasDocuments}
+            useWebSearch={useWebSearch}
+            setUseWebSearch={setUseWebSearch}
+            autoFocus
+          />
 
           <div className="space-y-4">
             {/* Mode */}
@@ -422,7 +467,20 @@ export function ChatInterface({
               </button>
             </div>
           </div>
-          <Composer />
+          <Composer
+            input={input}
+            setInput={setInput}
+            onSend={() => sendMessage()}
+            onKeyDown={handleKeyDown}
+            isStreaming={isStreaming}
+            isConversationActive={isConversationActive}
+            onAbort={() => { abortRef.current = true; setIsStreaming(false); }}
+            useKnowledge={useKnowledge}
+            setUseKnowledge={setUseKnowledge}
+            hasDocuments={hasDocuments}
+            useWebSearch={useWebSearch}
+            setUseWebSearch={setUseWebSearch}
+          />
         </div>
       </div>
 
