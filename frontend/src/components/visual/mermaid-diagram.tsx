@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
-import { AlertCircle, Expand, Loader2 } from "lucide-react";
+import { Check, Copy, Expand, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { repairMermaidChart } from "@/lib/mermaid-repair";
 
 interface MermaidDiagramProps {
   chart: string;
@@ -36,13 +37,15 @@ async function renderChart(
   dark: boolean,
 ): Promise<string> {
   const mermaid = (await import("mermaid")).default;
-  const normalizedChart = chart.trim();
+  const repairedChart = repairMermaidChart(chart);
+
   const baseConfig = {
     startOnLoad: false,
     theme: dark ? "dark" : "neutral",
-    securityLevel: "strict",
+    securityLevel: "loose",
     suppressErrorRendering: true,
   } as const;
+
   if (!mermaidInitialized) {
     mermaid.initialize({
       ...baseConfig,
@@ -53,22 +56,32 @@ async function renderChart(
     mermaid.initialize(baseConfig);
   }
 
-  if (!normalizedChart) {
-    throw new Error("Empty Mermaid chart");
+  if (!repairedChart) {
+    throw new Error("Empty Mermaid diagram");
   }
 
-  if (typeof mermaid.parse === "function") {
-    const parsed = await mermaid.parse(normalizedChart, { suppressErrors: true });
-    if (parsed === false) {
-      throw new Error("Invalid Mermaid syntax");
+  // Attempt initial render with repaired chart
+  try {
+    const { svg } = await mermaid.render(id, repairedChart);
+    return svg;
+  } catch (primaryErr) {
+    // If primary failed, attempt basic fallback flowchart wrapping
+    const fallbackId = `${id}-fb`;
+    const lines = repairedChart.split("\n").filter((l) => l.includes("-->") || l.includes("---"));
+    if (lines.length > 0) {
+      const fallbackCode = `flowchart TD\n${lines.join("\n")}`;
+      try {
+        const { svg } = await mermaid.render(fallbackId, fallbackCode);
+        return svg;
+      } catch {
+        // Continue to throw primary error if fallback also failed
+      }
     }
+    throw primaryErr;
   }
-
-  const { svg } = await mermaid.render(id, normalizedChart);
-  return svg;
 }
 
-const MAX_CHART_LENGTH = 12_000;
+const MAX_CHART_LENGTH = 16_000;
 
 export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps) {
   const uid = useId().replace(/:/g, "");
@@ -84,6 +97,7 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
     error: null,
   });
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const dark = resolvedTheme === "dark";
   const renderKey = `${dark ? "dark" : "light"}:${safeChart}`;
@@ -96,9 +110,9 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
     let cancelled = false;
 
     renderChart(renderId, safeChart, dark)
-      .then((result) => {
+      .then((res) => {
         if (!cancelled) {
-          setResult({ key: renderKey, svg: result, error: null });
+          setResult({ key: renderKey, svg: res, error: null });
         }
       })
       .catch((err) => {
@@ -106,7 +120,7 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
           setResult({
             key: renderKey,
             svg: "",
-            error: err instanceof Error ? err.message : "Failed to render diagram",
+            error: err instanceof Error ? err.message : "Diagram rendering failed",
           });
         }
       });
@@ -116,25 +130,33 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
     };
   }, [dark, renderId, renderKey, safeChart]);
 
+  const copyCode = async () => {
+    await navigator.clipboard.writeText(safeChart);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const diagramBody = (
-    <div className="relative min-h-[120px]">
+    <div className="relative min-h-[100px]">
       {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       )}
       {error && (
-        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <pre className="overflow-x-auto text-xs whitespace-pre-wrap">{error}</pre>
+        <div className="p-4 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground mb-1">Visual Diagram Source:</p>
+          <pre className="overflow-x-auto rounded-lg bg-muted/40 p-3 font-mono text-[11px] leading-relaxed">
+            {safeChart}
+          </pre>
         </div>
       )}
       {!loading && !error && svg && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="flex justify-center overflow-x-auto p-2 [&_svg]:max-w-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="flex justify-center overflow-x-auto p-4 [&_svg]:max-w-full [&_svg]:h-auto"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       )}
@@ -145,33 +167,42 @@ export function MermaidDiagram({ chart, title, className }: MermaidDiagramProps)
     <>
       <div
         className={cn(
-          "my-4 overflow-hidden rounded-xl border border-border/50 bg-card/60",
+          "my-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 backdrop-blur-xs",
           className,
         )}
       >
-        <div className="flex items-center justify-between border-b border-border/40 px-3 py-2">
-          <span className="text-xs font-medium text-muted-foreground">
-            {title ?? "Diagram"}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setExpanded(true)}
-            aria-label="Expand diagram"
-          >
-            <Expand className="h-3.5 w-3.5" />
-          </Button>
+        <div className="flex items-center justify-between border-b border-border/40 px-3.5 py-2 text-xs text-muted-foreground">
+          <span className="font-medium">{title ?? "Visual Diagram"}</span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              onClick={copyCode}
+              aria-label="Copy Mermaid code"
+            >
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              onClick={() => setExpanded(true)}
+              aria-label="Expand diagram"
+            >
+              <Expand className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
         {diagramBody}
       </div>
 
       <Dialog open={expanded} onOpenChange={setExpanded}>
-        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{title ?? "Diagram"}</DialogTitle>
+            <DialogTitle>{title ?? "Visual Diagram"}</DialogTitle>
           </DialogHeader>
-          <div className="overflow-x-auto p-2">{diagramBody}</div>
+          <div className="overflow-x-auto p-4">{diagramBody}</div>
         </DialogContent>
       </Dialog>
     </>

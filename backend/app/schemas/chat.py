@@ -52,5 +52,6 @@ class ChatMessageRequest(BaseModel):
     content: str = Field(min_length=1, max_length=32000)
     learning_mode: LearningMode | None = None
     use_knowledge: bool = False
+    use_web: bool = False
     document_ids: list[uuid.UUID] | None = None
     topic_name: str | None = Field(default=None, max_length=255)

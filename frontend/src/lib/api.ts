@@ -25,7 +25,7 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
@@ -137,6 +137,7 @@ export const api = {
     options?: {
       learningMode?: LearningMode;
       useKnowledge?: boolean;
+      useWeb?: boolean;
       topicName?: string;
     },
   ): AsyncGenerator<
@@ -156,6 +157,7 @@ export const api = {
           content,
           learning_mode: options?.learningMode,
           use_knowledge: options?.useKnowledge ?? false,
+          use_web: options?.useWeb ?? false,
           topic_name: options?.topicName,
         }),
         signal: createAbortSignal(STREAM_TIMEOUT_MS),
@@ -262,21 +264,45 @@ export const api = {
       body: JSON.stringify({ task_id: taskId }),
     }, token),
 
+  updatePlanTask: (
+    token: string,
+    planId: string,
+    taskId: string,
+    data: { completed: boolean },
+  ) =>
+    request<StudyPlan>(`/api/v1/progress/study-plans/${planId}/tasks`, {
+      method: "PATCH",
+      body: JSON.stringify({ task_id: taskId, ...data }),
+    }, token),
+
+  listRevisionQueue: (token: string) =>
+    request<RevisionItem[]>("/api/v1/progress/revision", {}, token),
+
   listRevisions: (token: string) =>
     request<RevisionItem[]>("/api/v1/progress/revisions", {}, token),
 
   createRevision: (
     token: string,
-    data: { title: string; scheduled_date: string; topic_id?: string },
+    data: { title: string; scheduled_date: string; topic_id?: string; notes?: string },
   ) =>
     request<RevisionItem>("/api/v1/progress/revisions", {
       method: "POST",
       body: JSON.stringify(data),
     }, token),
 
-  completeRevision: (token: string, id: string) =>
-    request<RevisionItem>(`/api/v1/progress/revisions/${id}/complete`, {
+  completeRevision: (token: string, revisionId: string) =>
+    request<RevisionItem>(`/api/v1/progress/revisions/${revisionId}/complete`, {
       method: "PATCH",
+    }, token),
+
+  submitRevisionReview: (
+    token: string,
+    itemId: string,
+    data: { rating: 1 | 2 | 3 | 4 | 5 },
+  ) =>
+    request<RevisionItem>(`/api/v1/progress/revision/${itemId}/review`, {
+      method: "POST",
+      body: JSON.stringify(data),
     }, token),
 
   listMemories: (token: string) =>
@@ -291,5 +317,3 @@ export const api = {
   deleteMemory: (token: string, id: string) =>
     request<void>(`/api/v1/progress/memory/${id}`, { method: "DELETE" }, token),
 };
-
-export { ApiError };

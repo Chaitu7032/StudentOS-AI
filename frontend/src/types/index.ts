@@ -55,6 +55,8 @@ export interface Citation {
   chunk_index: number;
   snippet: string;
   score: number;
+  page?: number;
+  url?: string;
 }
 
 export interface KnowledgeStats {
@@ -66,42 +68,35 @@ export const LEARNING_MODES: {
   id: LearningMode;
   label: string;
   description: string;
-  icon: string;
 }[] = [
   {
     id: "beginner",
     label: "Beginner",
-    description: "Simple explanations with analogies",
-    icon: "🌱",
+    description: "Intuitive analogies & fundamental concepts",
   },
   {
     id: "revision",
     label: "Revision",
-    description: "Quick recall and exam summaries",
-    icon: "⚡",
+    description: "High-yield summaries & exam checkpoints",
   },
   {
     id: "interview",
     label: "Interview",
-    description: "Technical interview preparation",
-    icon: "🎯",
+    description: "Technical problem walkthroughs & STAR tips",
   },
   {
     id: "deep_dive",
     label: "Deep Dive",
-    description: "Expert-level rigorous explanations",
-    icon: "🔬",
+    description: "Rigorous internals & architecture",
   },
   {
     id: "exam_prep",
     label: "Exam Prep",
-    description: "Practice problems and test strategies",
-    icon: "📝",
+    description: "Step-by-step solutions & test strategies",
   },
   {
     id: "visual",
     label: "Visual",
-    description: "Diagrams, flowcharts, and visual explanations",
-    icon: "📊",
+    description: "Flowcharts & architectural diagrams",
   },
 ];

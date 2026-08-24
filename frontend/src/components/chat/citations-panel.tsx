@@ -1,11 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { BookMarked, X } from "lucide-react";
+import { ExternalLink, Globe, X, FileText } from "lucide-react";
 import type { Citation } from "@/types";
-import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface CitationsPanelProps {
   citations: Citation[];
@@ -13,7 +11,7 @@ interface CitationsPanelProps {
 }
 
 export function CitationsPanel({ citations, onClose }: CitationsPanelProps) {
-  if (citations.length === 0) return null;
+  if (!citations || citations.length === 0) return null;
 
   return (
     <AnimatePresence>
@@ -21,40 +19,67 @@ export function CitationsPanel({ citations, onClose }: CitationsPanelProps) {
         initial={{ opacity: 0, height: 0 }}
         animate={{ opacity: 1, height: "auto" }}
         exit={{ opacity: 0, height: 0 }}
-        className="mb-3"
+        className="mb-4 overflow-hidden rounded-xl border border-border/80 bg-muted/30 p-3"
       >
-        <GlassCard className="p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <BookMarked className="h-4 w-4 text-primary" />
-              Sources from your knowledge base
-            </div>
-            {onClose && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <FileText className="h-3.5 w-3.5" />
+            <span>Sources ({citations.length})</span>
           </div>
-          <div className="space-y-2">
-            {citations.map((c) => (
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+              onClick={onClose}
+              aria-label="Close sources panel"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          {citations.map((c) => {
+            const isWeb = c.url || c.document_id?.startsWith("web-");
+            return (
               <div
-                key={`${c.document_id}-${c.chunk_index}`}
-                className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2 text-xs"
+                key={`${c.document_id}-${c.chunk_index}-${c.index}`}
+                className="group relative flex flex-col justify-between rounded-lg border border-border/70 bg-card p-2.5 text-xs transition-colors hover:border-foreground/20"
               >
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px]">
-                    [{c.index}]
-                  </Badge>
-                  <span className="font-medium truncate">{c.document_title}</span>
-                  <span className="text-muted-foreground">
-                    · {(c.score * 100).toFixed(0)}% match
-                  </span>
+                <div>
+                  <div className="flex items-center gap-1.5 font-medium text-foreground">
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-muted text-[10px] font-semibold text-foreground">
+                      {c.index}
+                    </span>
+                    <span className="truncate flex-1">{c.document_title}</span>
+                    {isWeb ? (
+                      <Globe className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <span className="shrink-0 text-[10px] text-muted-foreground font-normal">
+                        {c.page ? `p. ${c.page}` : `sec. ${c.chunk_index + 1}`}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+                    {c.snippet}
+                  </p>
                 </div>
-                <p className="mt-1 line-clamp-2 text-muted-foreground">{c.snippet}</p>
+
+                {c.url && (
+                  <a
+                    href={c.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] text-foreground/80 hover:underline"
+                  >
+                    View source <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                )}
               </div>
-            ))}
-          </div>
-        </GlassCard>
+            );
+          })}
+        </div>
       </motion.div>
     </AnimatePresence>
   );

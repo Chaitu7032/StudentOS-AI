@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { BookOpen, Database, Layers } from "lucide-react";
+import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { DocumentUpload } from "@/components/knowledge/document-upload";
 import { DocumentList } from "@/components/knowledge/document-list";
-import { GlassCard } from "@/components/ui/glass-card";
 
 export default function KnowledgePage() {
   const token = useAuthStore((s) => s.token);
@@ -44,45 +43,52 @@ export default function KnowledgePage() {
 
   return (
     <div className="h-full w-full min-w-0 overflow-y-auto">
-      <div className="mesh-gradient pointer-events-none fixed inset-0 opacity-30" />
       <div className="app-shell">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-card">
-              <BookOpen className="h-6 w-6 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/80 bg-card shadow-xs">
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-                Knowledge Workspace
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+                Knowledge Base & Notes
               </h1>
-              <p className="text-muted-foreground">
-                Upload PDFs and notes to power contextual answers with citations
+              <p className="text-xs text-muted-foreground">
+                Upload PDFs, markdown files, and lecture notes to query with citations in AI Chat.
               </p>
             </div>
           </div>
         </motion.div>
 
+        {/* Stats Row */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <GlassCard className="flex items-center gap-4 p-4">
-            <Database className="h-8 w-8 text-primary" />
-            <div>
-              <p className="text-2xl font-bold">{stats?.document_count ?? 0}</p>
-              <p className="text-sm text-muted-foreground">Documents</p>
+          <div className="flex items-center gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-xs">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Database className="h-5 w-5" />
             </div>
-          </GlassCard>
-          <GlassCard className="flex items-center gap-4 p-4">
-            <Layers className="h-8 w-8 text-primary" />
             <div>
-              <p className="text-2xl font-bold">{stats?.chunk_count ?? 0}</p>
-              <p className="text-sm text-muted-foreground">Indexed chunks</p>
+              <p className="text-2xl font-bold text-foreground">{stats?.document_count ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Uploaded Documents</p>
             </div>
-          </GlassCard>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-xs">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Layers className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{stats?.chunk_count ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Indexed Vector Chunks</p>
+            </div>
+          </div>
         </div>
 
+        {/* Upload Component */}
         <DocumentUpload onUploaded={refresh} />
 
-        <div>
-          <h2 className="mb-4 text-lg font-semibold">Your library</h2>
+        {/* Library */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">Your Library</h2>
           <DocumentList
             documents={documents}
             isLoading={isLoading}
@@ -90,15 +96,6 @@ export default function KnowledgePage() {
             deletingId={deletingId}
           />
         </div>
-
-        <GlassCard className="p-5 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">How RAG works</p>
-          <ul className="mt-2 list-inside list-disc space-y-1">
-            <li>Documents are split into chunks and embedded with sentence-transformers</li>
-            <li>Semantic search finds the most relevant excerpts via pgvector</li>
-            <li>Enable &quot;Use my knowledge base&quot; in chat for citation-style answers</li>
-          </ul>
-        </GlassCard>
       </div>
     </div>
   );

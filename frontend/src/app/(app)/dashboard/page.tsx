@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
-import { GlassCard } from "@/components/ui/glass-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,48 +24,42 @@ import { RecommendationsCard } from "@/components/progress/recommendations-card"
 
 const quickActions = [
   {
-    title: "Open Tutor",
-    description: "Ask concepts, code, and DSA questions",
+    title: "Tutor Workspace",
+    description: "Deep theory, DSA problem walkthroughs & KaTeX math",
     icon: Brain,
     href: "/chat",
-    tone: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
   },
   {
-    title: "Progress Hub",
-    description: "Track topics, plans, and revision",
-    icon: BarChart3,
-    href: "/progress",
-    tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    title: "Knowledge & Notes",
+    description: "Upload PDFs and query course slides with citations",
+    icon: BookOpen,
+    href: "/knowledge",
   },
   {
-    title: "Interview Prep",
-    description: "Practice technical interview sessions",
+    title: "Interview Sandbox",
+    description: "Practice technical coding interview challenges",
     icon: Target,
     href: "/chat",
     mode: "interview",
-    tone: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
   },
   {
-    title: "Revision Mode",
-    description: "Run quick recall sessions before exams",
+    title: "Revision Queue",
+    description: "Rapid recall session tailored for upcoming exams",
     icon: Zap,
     href: "/chat",
     mode: "revision",
-    tone: "bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300",
   },
   {
-    title: "Knowledge Base",
-    description: "Upload notes for contextual answers",
-    icon: BookOpen,
-    href: "/knowledge",
-    tone: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
-  },
-  {
-    title: "Visual Learning",
-    description: "Use diagrams, DSA lab, and concept maps",
+    title: "Visual Architecture",
+    description: "Explore interactive Mermaid flowcharts & concept diagrams",
     icon: Workflow,
     href: "/visual",
-    tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  },
+  {
+    title: "Analytics & Progress",
+    description: "Track mastery scores, streaks, and study plans",
+    icon: BarChart3,
+    href: "/progress",
   },
 ];
 
@@ -103,17 +96,17 @@ export default function DashboardPage() {
       icon: TrendingUp,
     },
     {
-      label: "Topics",
+      label: "Mastered Topics",
       value: overviewLoading ? "-" : String(overview?.topics_count ?? 0),
       icon: BookOpen,
     },
     {
-      label: "Chats",
+      label: "Conversations",
       value: chatsLoading ? "-" : String(chats?.length ?? 0),
       icon: Brain,
     },
     {
-      label: "Today",
+      label: "Daily Focus",
       value: overviewLoading
         ? "-"
         : `${p?.today_minutes ?? 0}/${p?.daily_goal_minutes ?? 30}m`,
@@ -122,117 +115,114 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="h-full w-full min-w-0 overflow-y-auto">
-      <div className="mesh-gradient pointer-events-none fixed inset-0 opacity-30" />
+    <div className="h-full w-full min-w-0 overflow-y-auto bg-background">
       <div className="app-shell">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
             Welcome back, {user?.full_name?.split(" ")[0] ?? "Student"}
           </h1>
-          <p className="mt-2 text-muted-foreground">
-            Continue your learning sessions and keep your progress on track.
+          <p className="text-sm text-muted-foreground">
+            Your deliberate practice dashboard & learning statistics.
           </p>
         </motion.div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <Link href="/progress">
-                <GlassCard className="p-4 transition-colors hover:bg-muted/60">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">{stat.label}</p>
-                      <p className="mt-1 text-2xl font-bold">{stat.value}</p>
-                    </div>
-                    <stat.icon className="h-5 w-5 text-primary/70" />
+        {/* Stats Grid */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <Link key={stat.label} href="/progress">
+              <div className="rounded-2xl border border-border/80 bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                    <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{stat.value}</p>
                   </div>
-                </GlassCard>
-              </Link>
-            </motion.div>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                    <stat.icon className="h-4 w-4" />
+                  </div>
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
 
+        {/* Recommendations */}
         {overview && overview.recommendations.length > 0 && (
           <RecommendationsCard recommendations={overview.recommendations.slice(0, 3)} />
         )}
 
-        <div>
-          <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {quickActions.map((action, i) => (
-              <motion.div
+        {/* Quick Actions */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/80">
+            Workspaces & Modes
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {quickActions.map((action) => (
+              <div
                 key={action.title}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
+                className="group cursor-pointer rounded-2xl border border-border/80 bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-xs"
+                onClick={() =>
+                  action.href && !action.mode
+                    ? router.push(action.href)
+                    : startChat(action.mode)
+                }
               >
-                <GlassCard
-                  className="group cursor-pointer p-5 transition-colors hover:bg-muted/60"
-                  onClick={() =>
-                    action.href && !action.mode
-                      ? router.push(action.href)
-                      : startChat(action.mode)
-                  }
-                >
-                  <div className={cn("mb-3 inline-flex rounded-xl p-2.5", action.tone)}>
-                    <action.icon className="h-5 w-5" />
+                <div className="flex items-start justify-between">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground">
+                    <action.icon className="h-4 w-4" />
                   </div>
-                  <h3 className="font-semibold">{action.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {action.description}
-                  </p>
-                  <ArrowRight className="mt-3 h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
-                </GlassCard>
-              </motion.div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+                <h3 className="mt-3 text-sm font-semibold text-foreground">{action.title}</h3>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  {action.description}
+                </p>
+              </div>
             ))}
           </div>
         </div>
 
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent Chats</h2>
+        {/* Recent Chats */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/80">
+              Recent Conversations
+            </h2>
             <Link
               href="/chat"
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs text-muted-foreground")}
             >
-              View all
+              Open all
             </Link>
           </div>
           {chatsLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((n) => (
-                <Skeleton key={n} className="h-14 w-full rounded-xl" />
+                <Skeleton key={n} className="h-12 w-full rounded-xl" />
               ))}
             </div>
           ) : chats && chats.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {chats.slice(0, 5).map((chat) => (
                 <Link key={chat.id} href={`/chat/${chat.id}`}>
-                  <GlassCard className="flex items-center justify-between p-4 transition-colors hover:bg-muted/60">
-                    <div>
-                      <p className="font-medium">{chat.title}</p>
+                  <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card p-3.5 transition-colors hover:bg-muted/50">
+                    <div className="min-w-0 pr-4">
+                      <p className="text-sm font-medium text-foreground truncate">{chat.title}</p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {chat.learning_mode.replace("_", " ")} | {chat.message_count}{" "}
-                        messages
+                        {chat.learning_mode.replace("_", " ")} &bull; {chat.message_count} messages
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </GlassCard>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <GlassCard className="p-8 text-center">
-              <p className="text-muted-foreground">No chats yet.</p>
-              <Button className="mt-4" onClick={() => startChat()}>
-                Start your first session
+            <div className="rounded-2xl border border-border/80 bg-card p-8 text-center space-y-3">
+              <p className="text-xs text-muted-foreground">No conversations yet.</p>
+              <Button size="sm" className="rounded-xl" onClick={() => startChat()}>
+                Start your first chat
               </Button>
-            </GlassCard>
+            </div>
           )}
         </div>
       </div>

@@ -2,44 +2,102 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   BookOpen,
   Brain,
-  GraduationCap,
   LayoutDashboard,
   LogOut,
-  MessageSquarePlus,
-  MessagesSquare,
+  PenSquare,
   Workflow,
+  MessageSquare,
+  Trash2,
 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { ThemeToggle } from "./theme-toggle";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/chat", label: "Tutor", icon: Brain },
+  { href: "/chat",      label: "Tutor",     icon: Brain },
   { href: "/knowledge", label: "Knowledge", icon: BookOpen },
-  { href: "/visual", label: "Visual", icon: Workflow },
-  { href: "/progress", label: "Progress", icon: BarChart3 },
+  { href: "/visual",    label: "Visual",    icon: Workflow },
+  { href: "/progress",  label: "Progress",  icon: BarChart3 },
 ];
+
+interface ContextMenu {
+  chatId: string;
+  x: number;
+  y: number;
+}
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { token, user, clearAuth } = useAuthStore();
+
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const { data: chats = [] } = useQuery({
     queryKey: ["chats"],
     queryFn: () => api.listChats(token!),
     enabled: !!token,
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (chatId: string) => api.deleteChat(token!, chatId),
+    onSuccess: (_data, chatId) => {
+      queryClient.setQueryData<typeof chats>(["chats"], (old) =>
+        old ? old.filter((c) => c.id !== chatId) : [],
+      );
+      if (pathname === `/chat/${chatId}`) {
+        router.push("/chat");
+      }
+    },
+  });
+
+  const handleRightClick = useCallback(
+    (e: React.MouseEvent, chatId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenu({ chatId, x: e.clientX, y: e.clientY });
+    },
+    [],
+  );
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        closeContextMenu();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeContextMenu();
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [contextMenu, closeContextMenu]);
+
+  const menuStyle = contextMenu
+    ? {
+        top: Math.min(contextMenu.y, window.innerHeight - 80),
+        left: Math.min(contextMenu.x, window.innerWidth - 180),
+      }
+    : {};
 
   const newChat = async () => {
     if (!token) return;
@@ -52,93 +110,158 @@ export function Sidebar() {
     router.push("/login");
   };
 
+  const initials = user?.full_name
+    ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "U";
+
   return (
-    <aside className="flex h-full min-h-0 w-64 flex-col border-r border-border/70 bg-sidebar">
-      <div className="flex items-center gap-2 px-4 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
-          <GraduationCap className="h-4 w-4 text-primary" />
+    <>
+      <aside className="flex h-full w-[220px] flex-col border-r border-border/70 bg-sidebar select-none">
+
+        {/* Brand Header */}
+        <div className="px-4 pt-5 pb-4">
+          <Link href="/dashboard" className="transition-opacity hover:opacity-90">
+            <Logo size={34} />
+          </Link>
         </div>
-        <div>
-          <p className="text-sm font-semibold tracking-tight">StudentOS</p>
-          <p className="text-[10px] text-muted-foreground">Learning Workspace</p>
+
+        {/* New Chat Action */}
+        <div className="px-3 pb-2">
+          <button
+            type="button"
+            onClick={newChat}
+            className="flex w-full items-center gap-2.5 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-sm font-medium text-primary transition-all hover:bg-primary/15 active:scale-[0.98]"
+          >
+            <PenSquare className="h-4 w-4 shrink-0" />
+            <span>New Chat</span>
+          </button>
         </div>
-      </div>
 
-      <div className="px-3">
-        <Button className="w-full justify-start gap-2 rounded-xl" onClick={newChat}>
-          <MessageSquarePlus className="h-4 w-4" />
-          New Chat
-        </Button>
-      </div>
+        {/* Nav Items */}
+        <nav className="space-y-0.5 px-2">
+          {navItems.map((item) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                )}
+              >
+                <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "")} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-      <nav className="mt-4 space-y-1 px-3">
-        {navItems.map((item) => {
-          const active = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+        {/* Divider */}
+        <div className="mx-3 my-3 h-px bg-border/50" />
 
-      <Separator className="my-4" />
-
-      <div className="flex items-center justify-between px-4">
-        <span className="text-xs font-medium text-muted-foreground">Recent</span>
-        <MessagesSquare className="h-3.5 w-3.5 text-muted-foreground" />
-      </div>
-
-      <ScrollArea className="min-h-0 flex-1 px-2">
-        <div className="space-y-0.5 py-2">
-          {chats.map((chat) => (
-            <Link
-              key={chat.id}
-              href={`/chat/${chat.id}`}
-              className={cn(
-                "block truncate rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted",
-                pathname === `/chat/${chat.id}` && "bg-muted font-medium",
-              )}
-            >
-              {chat.title}
-            </Link>
-          ))}
-          {chats.length === 0 && (
-            <p className="px-3 py-4 text-xs text-muted-foreground">
-              No chats yet. Start learning!
-            </p>
-          )}
+        {/* Recent Chats Section */}
+        <div className="flex items-center justify-between px-4 pb-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Recent
+          </span>
+          <span className="text-[9px] text-muted-foreground/40 italic">right-click to delete</span>
         </div>
-      </ScrollArea>
 
-      <div className="mt-auto border-t border-border/50 p-3">
-        <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{user?.full_name}</p>
-            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+        {/* Chat List */}
+        <ScrollArea className="min-h-0 flex-1 px-2">
+          <div className="space-y-0.5 pb-2">
+            {chats.map((chat) => {
+              const active = pathname === `/chat/${chat.id}`;
+              const isDeleting = deleteMutation.isPending && deleteMutation.variables === chat.id;
+
+              return (
+                <div key={chat.id} className="relative group/chat">
+                  <Link
+                    href={`/chat/${chat.id}`}
+                    onContextMenu={(e) => handleRightClick(e, chat.id)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition-colors",
+                      active
+                        ? "bg-muted text-foreground font-medium"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                      isDeleting && "opacity-40 pointer-events-none",
+                    )}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-40" />
+                    <span className="truncate flex-1">{chat.title}</span>
+                  </Link>
+                </div>
+              );
+            })}
+            {chats.length === 0 && (
+              <p className="px-3 py-4 text-xs text-muted-foreground/60">
+                No chats yet. Start learning!
+              </p>
+            )}
           </div>
-          <ThemeToggle />
+        </ScrollArea>
+
+        {/* User Profile Footer */}
+        <div className="border-t border-border/50 p-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-1 ring-primary/20">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium text-foreground leading-tight">
+                {user?.full_name ?? "Student"}
+              </p>
+              <p className="truncate text-[10px] text-muted-foreground leading-tight">
+                {user?.email}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={logout}
+                title="Sign out"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-2 w-full justify-start gap-2 text-muted-foreground"
-          onClick={logout}
+      </aside>
+
+      {/* Right-click Context Menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          style={{ ...menuStyle, position: "fixed", zIndex: 9999 }}
+          className="min-w-[160px] overflow-hidden rounded-xl border border-border/70 bg-popover shadow-xl shadow-black/20 backdrop-blur-sm animate-in fade-in-0 zoom-in-95 duration-100"
+          onContextMenu={(e) => e.preventDefault()}
         >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </Button>
-      </div>
-    </aside>
+          <div className="border-b border-border/50 px-3 py-2">
+            <p className="text-[11px] font-medium text-muted-foreground truncate max-w-[140px]">
+              {chats.find((c) => c.id === contextMenu.chatId)?.title ?? "Chat"}
+            </p>
+          </div>
+
+          <div className="p-1">
+            <button
+              type="button"
+              onClick={() => {
+                deleteMutation.mutate(contextMenu.chatId);
+                closeContextMenu();
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10 active:bg-destructive/15"
+            >
+              <Trash2 className="h-3.5 w-3.5 shrink-0" />
+              <span>Delete conversation</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

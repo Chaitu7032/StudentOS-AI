@@ -14,153 +14,188 @@ import {
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { GlassCard } from "@/components/ui/glass-card";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Logo } from "@/components/ui/logo";
 
 const features = [
   {
     icon: Brain,
-    title: "Tutor Support",
-    description: "Clear explanations across multiple learning modes",
+    title: "Adaptive Tutoring",
+    description: "Deep, patient explanations matched to your learning level with instant LaTeX math rendering.",
   },
   {
     icon: Code2,
-    title: "Coding Mentor",
-    description: "Line-by-line help with practical implementation guidance",
+    title: "Engineering Mentorship",
+    description: "Idiomatic code implementations, complexity analysis, and line-by-line architecture walkthroughs.",
   },
   {
     icon: Target,
-    title: "Interview Prep",
-    description: "Structured technical interview practice and feedback",
+    title: "Technical Interview Prep",
+    description: "Structured problem derivations, STAR-method structuring, and live interviewer feedback.",
   },
   {
     icon: Zap,
-    title: "Revision Assistant",
-    description: "Fast recall sessions and exam-focused summaries",
-  },
-  {
-    icon: GraduationCap,
-    title: "Study Planning",
-    description: "Weekly planning aligned with your academic goals",
+    title: "Exam Revision Hub",
+    description: "High-yield checkpoints, flashcard-style rapid recall, and spaced revision scheduling.",
   },
   {
     icon: BookText,
-    title: "Knowledge Workspace",
-    description: "Work directly with your notes and course material",
+    title: "Hybrid Knowledge RAG",
+    description: "Upload PDFs and lecture notes to query your curriculum with page-accurate inline citations.",
   },
   {
     icon: Workflow,
-    title: "Visual Learning",
-    description: "Diagrams, DSA walkthroughs, and concept mapping",
+    title: "Visual Architecture Maps",
+    description: "Self-healing interactive Mermaid diagrams for distributed systems and data structures.",
   },
 ];
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="mesh-gradient pointer-events-none fixed inset-0 opacity-80" />
-
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 md:px-10">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
-            <GraduationCap className="h-4 w-4 text-primary" />
-          </div>
-          <span className="font-semibold tracking-tight">StudentOS</span>
-        </div>
+    <div className="relative min-h-screen bg-background selection:bg-primary/20">
+      {/* Navigation Header */}
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border/60 bg-background/80 px-6 py-4 backdrop-blur-md md:px-12">
+        <Link href="/" className="transition-opacity hover:opacity-90">
+          <Logo size={36} textClassName="text-base" />
+        </Link>
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }))}>
+          <Link
+            href="/login"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "text-xs md:text-sm font-medium",
+            )}
+          >
             Sign in
           </Link>
-          <Link href="/signup" className={cn(buttonVariants())}>
+          <Link
+            href="/signup"
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "rounded-xl text-xs md:text-sm font-medium px-4",
+            )}
+          >
             Get started
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10 px-6 pb-24 md:px-10">
+      <main className="px-6 pb-24 md:px-12">
+        {/* Hero Section */}
         <section className="mx-auto max-w-4xl pt-16 text-center md:pt-24">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.45 }}
+            className="space-y-6"
           >
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground">
-              Built for focused learning
-            </span>
-            <h1 className="mt-8 text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
-              One workspace for
+            {/* Center Logo Showcase */}
+            <div className="mx-auto flex justify-center pb-2">
+              <div className="relative p-1 rounded-2xl bg-card border border-border/80 shadow-md">
+                <Logo size={72} showText={false} />
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1 text-xs font-medium text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              The AI workspace built for serious students
+            </div>
+
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl text-foreground">
+              Master complex topics.
               <br />
-              studying, coding, and career prep
+              <span className="text-muted-foreground font-normal">
+                Ace exams and engineering interviews.
+              </span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-              StudentOS brings tutoring, coding mentorship, interview preparation,
-              and progress tracking into a single professional learning platform.
+
+            <p className="mx-auto max-w-2xl text-base md:text-lg text-muted-foreground leading-relaxed">
+              StudentOS integrates dynamic AI tutoring, page-accurate document RAG,
+              real-time web context, and automated visual diagrams into one unified study OS.
             </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+
+            <div className="pt-4 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
                 className={cn(
                   buttonVariants({ size: "lg" }),
-                  "h-12 px-8 text-base inline-flex items-center",
+                  "h-11 px-6 rounded-xl font-medium text-sm inline-flex items-center gap-2",
                 )}
               >
-                Start learning
-                <ArrowRight className="ml-2 h-4 w-4" />
+                Start learning now
+                <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/login"
                 className={cn(
                   buttonVariants({ size: "lg", variant: "outline" }),
-                  "h-12",
+                  "h-11 px-6 rounded-xl font-medium text-sm",
                 )}
               >
-                Sign in
+                Sign in to workspace
               </Link>
             </div>
           </motion.div>
         </section>
 
-        <section className="mx-auto mt-24 max-w-6xl">
+        {/* Feature Grid */}
+        <section className="mx-auto mt-24 max-w-5xl">
+          <div className="mb-10 text-center space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              Engineered for comprehension
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Everything you need to go from fundamental theory to production code and exam mastery.
+            </p>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, i) => (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
+                transition={{ delay: i * 0.05, duration: 0.3 }}
+                className="group rounded-2xl border border-border/80 bg-card p-5 transition-all hover:border-foreground/20 hover:shadow-xs"
               >
-                <GlassCard className="h-full p-6">
-                  <feature.icon className="h-8 w-8 text-primary" />
-                  <h3 className="mt-4 font-semibold">{feature.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </GlassCard>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground">
+                  <feature.icon className="h-4 w-4" />
+                </div>
+                <h3 className="mt-4 text-sm font-semibold text-foreground">{feature.title}</h3>
+                <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+                  {feature.description}
+                </p>
               </motion.div>
             ))}
           </div>
         </section>
 
-        <section className="mx-auto mt-24 max-w-3xl text-center">
-          <GlassCard className="p-10">
-            <h2 className="text-2xl font-bold md:text-3xl">
-              Built for students. Designed for consistency.
+        {/* Bottom CTA */}
+        <section className="mx-auto mt-24 max-w-2xl text-center">
+          <div className="rounded-3xl border border-border/80 bg-card p-10 space-y-4">
+            <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+              Ready to elevate your study routine?
             </h2>
-            <p className="mt-4 text-muted-foreground">
-              Keep your learning flow in one place with reliable tools for daily
-              practice and long-term progress.
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Join students preparing for top university exams and high-impact software careers.
             </p>
-            <Link href="/signup" className={cn(buttonVariants(), "mt-8 inline-flex")}>
-              Create account
-            </Link>
-          </GlassCard>
+            <div className="pt-2">
+              <Link
+                href="/signup"
+                className={cn(buttonVariants(), "h-10 px-6 rounded-xl font-medium text-sm")}
+              >
+                Create free account
+              </Link>
+            </div>
+          </div>
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-border/50 py-8 text-center text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} StudentOS
+      {/* Footer */}
+      <footer className="border-t border-border/50 py-8 text-center text-xs text-muted-foreground">
+        &copy; {new Date().getFullYear()} StudentOS &bull; AI Learning Workspace.
       </footer>
     </div>
   );

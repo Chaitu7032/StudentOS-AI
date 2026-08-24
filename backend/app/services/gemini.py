@@ -30,17 +30,22 @@ async def stream_chat_response(
     learning_mode: str,
     history: list[dict[str, str]],
     rag_context: str | None = None,
+    web_context: str | None = None,
     citations: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
     """Stream Gemini response as Server-Sent Events data chunks."""
     if not settings.gemini_api_key:
-        yield _sse({"error": "GEMINI_API_KEY not configured"})
+        yield _sse({"error": "GEMINI_API_KEY is not configured on the server."})
         yield _sse("[DONE]")
         return
 
     _configure()
     sanitized = sanitize_user_input(user_message)
-    system_prompt = build_system_prompt(learning_mode, rag_context)
+    system_prompt = build_system_prompt(
+        learning_mode=learning_mode,
+        rag_context=rag_context,
+        web_context=web_context,
+    )
 
     if citations:
         yield _sse({"citations": citations})

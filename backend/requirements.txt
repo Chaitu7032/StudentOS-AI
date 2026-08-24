@@ -17,3 +17,5 @@ sentence-transformers>=3.3.0
 pgvector>=0.3.6
 pypdf>=5.1.0
 langchain-text-splitters>=0.3.0
+duckduckgo-search>=8.1.1
+rank-bm25>=0.2.2

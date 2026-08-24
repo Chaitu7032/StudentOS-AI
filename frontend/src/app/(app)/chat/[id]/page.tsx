@@ -25,17 +25,17 @@ export default function ChatPage({
 
   if (!hydrated || !token || isLoading) {
     return (
-      <div className="flex h-full flex-col gap-4 p-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="flex-1 w-full rounded-2xl" />
+      <div className="flex h-full w-full flex-col justify-center items-center gap-3 p-6">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-xs text-muted-foreground">Loading workspace...</p>
       </div>
     );
   }
 
   if (error || !chat) {
     return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        Chat not found
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+        Conversation not found
       </div>
     );
   }

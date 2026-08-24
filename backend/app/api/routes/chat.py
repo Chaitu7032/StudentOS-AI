@@ -1,4 +1,5 @@
 import json
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -22,7 +23,12 @@ from app.security.jwt import get_current_user
 from app.security.rate_limit import CHAT_STREAM_LIMIT, limiter
 from app.services.analytics import record_activity
 from app.services.gemini import stream_chat_response
-from app.services.rag import build_rag_context, search_knowledge
+from app.services.rag import (
+    build_rag_context,
+    build_web_context,
+    search_knowledge,
+)
+from app.services.web_search import search_web
 
 router = APIRouter(prefix="/chats", tags=["chats"])
 
@@ -36,6 +42,17 @@ def _chat_to_response(chat: Chat, message_count: int = 0) -> ChatResponse:
         updated_at=chat.updated_at,
         message_count=message_count,
     )
+
+
+def should_trigger_web_search(query: str) -> bool:
+    """Detect if query asks for current info, latest documentation, or external real-time data."""
+    q = query.lower()
+    triggers = [
+        "latest", "current", "news", "recent", "today", "2024", "2025", "2026",
+        "released", "documentation", "docs for", "framework update", "what is new",
+        "trends", "price of", "weather", "search web", "look up"
+    ]
+    return any(t in q for t in triggers)
 
 
 @router.get("", response_model=list[ChatResponse])
@@ -170,8 +187,10 @@ async def stream_message(
     history.append({"role": "user", "content": data.content})
 
     rag_context: str | None = None
-    citations: list[dict] = []
+    web_context: str | None = None
+    all_citations: list[dict] = []
 
+    # 1. RAG Knowledge retrieval
     if data.use_knowledge:
         retrieved = await search_knowledge(
             db,
@@ -180,23 +199,35 @@ async def stream_message(
             document_ids=data.document_ids,
         )
         if retrieved:
-            rag_context, citations = build_rag_context(retrieved)
+            rag_context, doc_citations = build_rag_context(retrieved)
+            all_citations.extend(doc_citations)
+
+    # 2. Real-time Web Search retrieval
+    if data.use_web or should_trigger_web_search(data.content):
+        # Extract keywords for concise search
+        search_query = re.sub(r"[^\w\s-]", "", data.content)[:120].strip()
+        web_results = await search_web(search_query, max_results=4)
+        if web_results:
+            start_idx = len(all_citations) + 1
+            web_context, web_cits = build_web_context(web_results, start_index=start_idx)
+            all_citations.extend(web_cits)
 
     assistant_parts: list[str] = []
 
     async def event_generator():
         nonlocal assistant_parts
         async for chunk in stream_chat_response(
-            data.content,
-            mode,
-            history[:-1],
+            user_message=data.content,
+            learning_mode=mode,
+            history=history[:-1],
             rag_context=rag_context,
-            citations=citations if citations else None,
+            web_context=web_context,
+            citations=all_citations if all_citations else None,
         ):
             yield chunk
             if chunk.startswith("data: "):
                 payload = chunk[6:].strip()
-                if payload == '"[DONE]"' or payload == "[DONE]":
+                if payload in ('"[DONE]"', "[DONE]"):
                     continue
                 try:
                     parsed = json.loads(payload)
@@ -212,9 +243,8 @@ async def stream_message(
             )
             db.add(assistant_msg)
             if chat.title == "New Chat" and len(chat.messages) <= 1:
-                chat.title = data.content[:60] + (
-                    "..." if len(data.content) > 60 else ""
-                )
+                title_summary = data.content[:50].strip()
+                chat.title = title_summary + ("..." if len(data.content) > 50 else "")
             await db.flush()
 
     return StreamingResponse(
